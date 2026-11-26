@@ -124,3 +124,28 @@ for node in soup.find_all(string=True):
         parent = parent.parent
 
 print("=== GRADE STRUCTURE END ===")
+
+
+print("=== GRADE CHECK START ===")
+
+items = soup.select(
+    ".gradePrice__detail__price__item"
+)
+
+if items:
+    parent = items[0]
+
+    for level in range(12):
+        if parent is None:
+            break
+
+        print("LEVEL:", level)
+        print("CLASS:", parent.get("class", []))
+        print("ID:", parent.get("id", ""))
+        print("TEXT:", parent.get_text(
+            " ", strip=True
+        )[:500])
+
+        parent = parent.parent
+
+print("=== GRADE CHECK END ===")
