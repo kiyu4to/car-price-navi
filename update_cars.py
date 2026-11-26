@@ -1074,3 +1074,178 @@ for model, model_path in ADVANCED_MODELS.items():
         time.sleep(3)
 
 print("=== ADVANCED PRICE CHECK END ===")
+
+
+# =====================================
+# Playwright アルト価格取得テスト
+# =====================================
+
+from playwright.sync_api import sync_playwright
+
+print("=== PLAYWRIGHT ALTO START ===")
+
+try:
+
+    url = BASE + "alto/detail/"
+
+    if not robots.can_fetch(AGENT, url):
+        raise RuntimeError("自動取得制限あり")
+
+    with sync_playwright() as p:
+
+        browser = p.chromium.launch(
+            headless=True
+        )
+
+        try:
+
+            context = browser.new_context(
+                locale="ja-JP",
+                user_agent=AGENT
+            )
+
+            def check_request(route):
+
+                target = urlparse(route.request.url)
+
+                if (
+                    target.scheme != "https"
+                    or target.netloc != "www.suzuki.co.jp"
+                    or not robots.can_fetch(
+                        AGENT, route.request.url
+                    )
+                ):
+                    route.abort()
+                else:
+                    route.continue_()
+
+            context.route("**/*", check_request)
+
+            page = context.new_page()
+
+            response = page.goto(
+                url,
+                wait_until="domcontentloaded",
+                timeout=60000
+            )
+
+            if response is None or not response.ok:
+                raise RuntimeError("ページ取得失敗")
+
+            print("ページタイトル:", page.title())
+            print("ページURL:", page.url)
+
+            # JavaScriptによる価格表示を待機
+
+            try:
+
+                page.wait_for_function(
+                    """() => Array.from(
+                        document.querySelectorAll(
+                            '[data-prices]'
+                        )
+                    ).some(
+                        e => /[0-9,]+\\s*円/.test(
+                            e.innerText
+                        )
+                    )""",
+                    timeout=20000
+                )
+
+            except Exception:
+
+                print("価格表示待機タイムアウト")
+
+            # JavaScript実行後のHTML取得
+
+            soup = BeautifulSoup(
+                page.content(),
+                "html.parser"
+            )
+
+            text = normalize(
+                page.locator("body").inner_text()
+            )
+
+            # 価格表示要素の確認
+
+            elements = soup.select(
+                "[data-prices]"
+            )
+
+            print(
+                "価格表示要素件数:",
+                len(elements)
+            )
+
+            for i, element in enumerate(elements):
+
+                content = normalize(
+                    element.get_text(
+                        " ", strip=True
+                    )
+                )
+
+                print("価格要素番号:", i + 1)
+                print("価格内容:", content)
+
+                parent = element
+
+                for level in range(4):
+
+                    if parent is None:
+                        break
+
+                    print("LEVEL:", level)
+
+                    print(
+                        "周辺情報:",
+                        normalize(
+                            parent.get_text(
+                                " ", strip=True
+                            )
+                        )[:600]
+                    )
+
+                    parent = parent.parent
+
+            # 車両価格候補の確認
+
+            matches = list(re.finditer(
+                r"\d{1,3}(?:,\d{3}){2}\s*円",
+                text
+            ))
+
+            print(
+                "ブラウザ価格候補件数:",
+                len(matches)
+            )
+
+            for match in matches[:30]:
+
+                start = max(
+                    0, match.start() - 100
+                )
+
+                end = min(
+                    len(text),
+                    match.end() + 80
+                )
+
+                print(
+                    "価格周辺:",
+                    text[start:end]
+                )
+
+        finally:
+
+            browser.close()
+
+except Exception as error:
+
+    print(
+        "Playwright取得失敗:",
+        str(error)
+    )
+
+print("=== PLAYWRIGHT ALTO END ===")
