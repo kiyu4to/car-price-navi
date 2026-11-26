@@ -631,3 +631,180 @@ for model, model_path in CHECK_MODELS.items():
         time.sleep(3)
 
 print("=== DETAIL CHECK END ===")
+
+
+# =====================================
+# ジムニー価格自動取得
+# =====================================
+
+print("=== JIMNY UPDATE START ===")
+
+try:
+
+    top_url = BASE + "jimny/"
+    detail_url = BASE + "jimny/detail/"
+
+    top_text = normalize(
+        fetch_page(top_url).get_text(" ", strip=True)
+    )
+
+    detail_text = normalize(
+        fetch_page(detail_url).get_text(" ", strip=True)
+    )
+
+    money = r"\d{1,3}(?:,\d{3}){2}"
+
+    # トップページのグレードと価格候補
+
+    top_pattern = re.compile(
+        r"\bXC\s+XL\s+XG\s+"
+        r"メーカー希望小売価格"
+        r"\s*\(消費税10%込み\)\s*"
+        r"(" + money + r")\s*円\s*[~〜]\s*"
+        r"(" + money + r")\s*円\s*[~〜]\s*"
+        r"(" + money + r")\s*円"
+    )
+
+    top_match = top_pattern.search(top_text)
+
+    if not top_match:
+        raise RuntimeError("グレード価格取得失敗")
+
+    grade_prices = {
+        grade: int(price.replace(",", ""))
+        for grade, price in zip(
+            ["XC", "XL", "XG"],
+            top_match.groups()
+        )
+    }
+
+    # 詳細ページの税込・税抜価格
+
+    detail_pattern = re.compile(
+        r"メーカー希望小売価格\s*"
+        r"4WD\s*・\s*5MT\s*"
+        r"(" + money + r")\s*円\s*"
+        r"\(消費税抜き\s*"
+        r"(" + money + r")\s*円\)\s*"
+        r"4WD\s*・\s*4AT\s*"
+        r"(" + money + r")\s*円\s*"
+        r"\(消費税抜き\s*"
+        r"(" + money + r")\s*円\)"
+    )
+
+    pairs = set()
+
+    for match in detail_pattern.finditer(detail_text):
+
+        mt, mt_net, at, at_net = [
+            int(p.replace(",", ""))
+            for p in match.groups()
+        ]
+
+        # 消費税10%の整合性確認
+
+        if mt * 10 != mt_net * 11:
+            raise RuntimeError("MT税込価格不一致")
+
+        if at * 10 != at_net * 11:
+            raise RuntimeError("AT税込価格不一致")
+
+        pairs.add((mt, at))
+
+    if len(pairs) != 3:
+        raise RuntimeError("価格構成不一致")
+
+    if len(set(grade_prices.values())) != 3:
+        raise RuntimeError("グレード価格重複")
+
+    jimny_cars = []
+
+    for grade, base_price in grade_prices.items():
+
+        matched = [
+            pair for pair in pairs
+            if min(pair) == base_price
+        ]
+
+        if len(matched) != 1:
+            raise RuntimeError(
+                "グレード価格照合失敗: " + grade
+            )
+
+        mt, at = matched[0]
+
+        for transmission, price in [
+            ("5MT", mt),
+            ("4AT", at)
+        ]:
+
+            if not 1000000 <= price <= 5000000:
+                raise RuntimeError("価格異常")
+
+            jimny_cars.append({
+                "maker": "スズキ",
+                "model": "ジムニー",
+                "grade": grade,
+                "drive": "4WD",
+                "transmission": transmission,
+                "price": price,
+                "price_type": "minimum_listed",
+                "price_candidates": [price],
+                "tax_included": True,
+                "source_url": detail_url,
+                "updated_at": now,
+                "status": "review_required"
+            })
+
+    if len(jimny_cars) != 6:
+        raise RuntimeError("ジムニーデータ不足")
+
+    # 取得成功時のみ置き換え
+
+    new_data = dict(data)
+
+    new_data["cars"] = [
+        car for car in data["cars"]
+        if not (
+            car.get("maker") == "スズキ"
+            and car.get("model") == "ジムニー"
+        )
+    ]
+
+    new_data["cars"].extend(jimny_cars)
+    new_data["updated_at"] = now
+
+    temp = preview.with_suffix(".tmp")
+
+    temp.write_text(
+        json.dumps(
+            new_data,
+            ensure_ascii=False,
+            indent=2
+        ),
+        encoding="utf-8"
+    )
+
+    temp.replace(preview)
+
+    data = new_data
+
+    for car in jimny_cars:
+
+        print(
+            car["model"],
+            car["grade"],
+            car["drive"],
+            car["transmission"],
+            f'{car["price"]:,}円'
+        )
+
+    print("ジムニー追加成功: 6件")
+    print("DB登録総件数:", len(data["cars"]))
+
+except Exception as error:
+
+    print("ジムニー取得失敗:", str(error))
+    print("既存データを維持します")
+
+print("=== JIMNY UPDATE END ===")
