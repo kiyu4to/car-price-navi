@@ -149,3 +149,41 @@ if items:
         parent = parent.parent
 
 print("=== GRADE CHECK END ===")
+
+
+print("=== GRADE PRICE SUMMARY ===")
+
+groups = {}
+
+for item in soup.select(
+    ".gradePrice__detail__price__item"
+):
+    price_text = item.get_text(" ", strip=True)
+
+    for parent in item.parents:
+        content = unicodedata.normalize(
+            "NFKC",
+            parent.get_text(" ", strip=True)
+        )
+
+        grades = set(re.findall(
+            r"HYBRID\s+X\s*ターボ|HYBRID\s+X|HYBRID\s+G",
+            content
+        ))
+
+        if len(grades) > 1:
+            break
+
+        if len(grades) == 1:
+            grade = next(iter(grades))
+            groups.setdefault(grade, set())
+            groups[grade].add(price_text)
+            break
+
+for grade, prices in groups.items():
+    print(grade)
+    for price in sorted(prices):
+        print("  " + price)
+
+print("グレード識別件数:", len(groups))
+print("=== SUMMARY END ===")
