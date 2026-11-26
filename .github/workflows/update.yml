@@ -1,11 +1,17 @@
 
-name: Car Price Update Test
+name: Car Price Auto Update
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 23 * * *'
 
 permissions:
   contents: write
+
+concurrency:
+  group: car-price-update
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -35,6 +41,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes"
           else
-            git commit -m "Update car price preview"
+            git commit -m "Update car price database"
             git push origin main
           fi
