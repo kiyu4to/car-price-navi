@@ -132,6 +132,10 @@ button {
   margin-top: 12px;
 }
 
+button:disabled {
+  opacity: 0.5;
+}
+
 .note {
   font-size: 12px;
   color: #64748b;
@@ -210,7 +214,6 @@ const urls = {
   "ダイハツ": "https://www.daihatsu.co.jp/"
 };
 
-// 既存の仮価格データ
 const sample = {
   "トヨタ": {
     "ヤリス": {
@@ -254,10 +257,10 @@ const maker = document.getElementById("maker");
 const car = document.getElementById("car");
 const grade = document.getElementById("grade");
 const drive = document.getElementById("drive");
+const reload = document.getElementById("reload");
 
 let cars = [];
 
-// 仮データの変換
 function sampleCars() {
   const result = [];
 
@@ -280,7 +283,6 @@ function sampleCars() {
   return result;
 }
 
-// 選択肢の作成
 function fill(select, items) {
   select.replaceChildren();
 
@@ -289,7 +291,6 @@ function fill(select, items) {
   });
 }
 
-// 車種選択
 function updateCars() {
   const list = cars.filter(
     c => c.maker === maker.value
@@ -299,7 +300,6 @@ function updateCars() {
   updateGrades();
 }
 
-// グレード選択
 function updateGrades() {
   const list = cars.filter(
     c => c.maker === maker.value
@@ -310,7 +310,6 @@ function updateGrades() {
   updateDrives();
 }
 
-// 駆動方式選択
 function updateDrives() {
   const list = cars.filter(
     c => c.maker === maker.value
@@ -322,7 +321,6 @@ function updateDrives() {
   updatePrice();
 }
 
-// 価格表示
 function updatePrice() {
   const selected = cars.find(
     c => c.maker === maker.value
@@ -339,6 +337,7 @@ function updatePrice() {
   const label = document.getElementById("priceLabel");
 
   if (!selected) {
+    label.textContent = "車両本体価格";
     price.textContent = "価格未登録";
     detail.textContent = "";
     status.textContent = "";
@@ -356,7 +355,7 @@ function updatePrice() {
     selected.grade,
     selected.drive,
     selected.transmission || ""
-  ].join(" ");
+  ].filter(Boolean).join(" ");
 
   if (selected.status === "sample") {
     label.textContent = "車両本体価格（仮価格）";
@@ -379,23 +378,33 @@ function updatePrice() {
     updated.textContent = "情報取得日時：未登録";
   }
 
-  official.href =
+  const source =
     selected.source_url || urls[selected.maker];
+
+  if (source && /^https:\/\//i.test(source)) {
+    official.href = source;
+  } else {
+    official.removeAttribute("href");
+  }
 }
 
-// データベースの読み込み
 async function loadData() {
+
   const connection =
     document.getElementById("connection");
 
   connection.textContent =
     "データベース接続中...";
 
+  connection.style.color = "#64748b";
+  reload.disabled = true;
+
   cars = sampleCars();
 
   try {
+
     const response = await fetch(
-      "./cars_preview.json",
+      "./cars_preview.json?v=" + Date.now(),
       { cache: "no-store" }
     );
 
@@ -409,44 +418,58 @@ async function loadData() {
       throw new Error("データ形式が不正です");
     }
 
-    const officialCars = data.cars.filter(
-      c => c.maker === "スズキ"
-        && c.model === "ハスラー"
+    // 全メーカー・全車種の価格を取得
+    const validCars = data.cars.filter(
+      c => c
+        && typeof c.maker === "string"
+        && typeof c.model === "string"
+        && typeof c.grade === "string"
+        && typeof c.drive === "string"
+        && c.maker.trim() !== ""
+        && c.model.trim() !== ""
+        && c.grade.trim() !== ""
+        && c.drive.trim() !== ""
         && c.status === "review_required"
         && c.price_type === "minimum_listed"
-        && typeof c.grade === "string"
-        && ["2WD", "4WD"].includes(c.drive)
+        && c.tax_included === true
         && Number.isFinite(c.price)
         && c.price > 0
     );
 
-    const keys = new Set(
-      officialCars.map(c => c.grade + "|" + c.drive)
-    );
+    // 重複データを除外
+    const unique = new Map();
 
-    const expected = [
-      "HYBRID G",
-      "HYBRID X",
-      "HYBRID X ターボ"
-    ].flatMap(g => [
-      g + "|2WD",
-      g + "|4WD"
-    ]);
+    for (const c of validCars) {
+      const key = JSON.stringify([
+        c.maker,
+        c.model,
+        c.grade,
+        c.drive
+      ]);
 
-    if (
-      officialCars.length !== 6 ||
-      keys.size !== 6 ||
-      !expected.every(k => keys.has(k))
-    ) {
-      throw new Error("車両データが不足しています");
+      unique.set(key, c);
     }
 
-    // ハスラーの仮データを置き換える
-    cars = cars.filter(
-      c => !(c.maker === "スズキ"
-        && c.model === "ハスラー")
+    const officialCars = [...unique.values()];
+
+    if (officialCars.length === 0) {
+      throw new Error("有効な車両データがありません");
+    }
+
+    // 取得済み車種の仮データを削除
+    const officialModels = new Set(
+      officialCars.map(
+        c => JSON.stringify([c.maker, c.model])
+      )
     );
 
+    cars = cars.filter(
+      c => !officialModels.has(
+        JSON.stringify([c.maker, c.model])
+      )
+    );
+
+    // 取得した全車種を追加
     cars.push(...officialCars);
 
     connection.textContent =
@@ -456,21 +479,35 @@ async function loadData() {
     connection.style.color = "#15803d";
 
   } catch (error) {
+
     connection.textContent =
       "データ取得失敗：仮データを表示中";
 
     connection.style.color = "#b91c1c";
+
     console.error(error);
+
+  } finally {
+
+    reload.disabled = false;
+
   }
 
   fill(maker, cars.map(c => c.maker));
 
-  // 起動時はスズキ・ハスラーを表示
-  maker.value = "スズキ";
+  if (cars.some(c => c.maker === "スズキ")) {
+    maker.value = "スズキ";
+  }
+
   updateCars();
 
-  car.value = "ハスラー";
-  updateGrades();
+  if (cars.some(
+    c => c.maker === maker.value
+      && c.model === "ハスラー"
+  )) {
+    car.value = "ハスラー";
+    updateGrades();
+  }
 }
 
 maker.onchange = updateCars;
@@ -478,8 +515,7 @@ car.onchange = updateGrades;
 grade.onchange = updateDrives;
 drive.onchange = updatePrice;
 
-document.getElementById("reload").onclick =
-  loadData;
+reload.onclick = loadData;
 
 loadData();
 
