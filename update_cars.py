@@ -14,9 +14,14 @@ BASE = "https://www.suzuki.co.jp/car/"
 AGENT = "CarPriceNavi"
 HEADERS = {"User-Agent": AGENT}
 
+# =====================================
+# 価格取得対象車種
+# =====================================
+
 CONFIG = [
     {
         "path": "hustler/",
+        "method": "hustler",
         "models": {
             "ハスラー": [
                 "HYBRID G",
@@ -27,6 +32,7 @@ CONFIG = [
     },
     {
         "path": "spacia/detail/",
+        "method": "detail",
         "models": {
             "スペーシア": [
                 "HYBRID G",
@@ -42,30 +48,69 @@ CONFIG = [
     },
     {
         "path": "spacia_gear/detail/",
+        "method": "detail",
         "models": {
             "スペーシア ギア": [
                 "HYBRID XZ",
                 "HYBRID XZ ターボ"
             ]
         }
+    },
+    {
+        "path": "wagonr/",
+        "method": "wagonr",
+        "models": {
+            "ワゴンR": [
+                "HYBRID ZX",
+                "ZL"
+            ]
+        }
+    },
+    {
+        "path": "wagonr_smile/",
+        "method": "smile",
+        "models": {
+            "ワゴンR スマイル": [
+                "HYBRID X",
+                "HYBRID S",
+                "G"
+            ]
+        }
     }
 ]
 
+# 詳細ページ調査対象
+CHECK_MODELS = {
+    "アルト": "alto/detail/",
+    "ラパン": "lapin/detail/",
+    "ジムニー": "jimny/detail/",
+    "エブリイワゴン": "everywagon/detail/"
+}
+
+# =====================================
+# 共通処理
+# =====================================
+
 def normalize(text):
+
     text = unicodedata.normalize("NFKC", text)
     text = re.sub(r"\s+", " ", text)
+
     text = re.sub(
         r"\s*(?:TURBO|ターボ)",
         " ターボ",
         text,
         flags=re.I
     )
+
     text = re.sub(
         r"\s*セーフティプラスパッケージ装着車",
         " セーフティプラスパッケージ装着車",
         text
     )
+
     return text.strip()
+
 
 session = requests.Session()
 session.headers.update(HEADERS)
@@ -74,6 +119,7 @@ response = session.get(
     "https://www.suzuki.co.jp/robots.txt",
     timeout=30
 )
+
 response.raise_for_status()
 
 robots = RobotFileParser()
@@ -94,26 +140,40 @@ data = json.loads(
 if not isinstance(data.get("cars"), list):
     raise RuntimeError("データベース形式異常")
 
-def fetch_prices(config):
 
-    url = BASE + config["path"]
+def fetch_page(url):
 
     if not robots.can_fetch(AGENT, url):
         raise RuntimeError("自動取得制限")
 
     response = session.get(
         url,
-        timeout=30
+        timeout=30,
+        allow_redirects=False
     )
-    response.raise_for_status()
 
-    if not robots.can_fetch(AGENT, response.url):
-        raise RuntimeError("取得先の自動取得制限")
+    if response.status_code != 200:
+        raise RuntimeError(
+            "HTTP " + str(response.status_code)
+        )
 
-    soup = BeautifulSoup(
+    return BeautifulSoup(
         response.content,
         "html.parser"
     )
+
+
+# =====================================
+# 価格取得
+# =====================================
+
+def fetch_prices(config):
+
+    url = BASE + config["path"]
+
+    soup = fetch_page(url)
+
+    method = config["method"]
 
     grade_models = {}
 
@@ -135,9 +195,31 @@ def fetch_prices(config):
     )
 
     groups = {}
+    transmissions = {}
 
-    # ハスラーと同じ価格表示構造
-    if config["path"] == "hustler/":
+    def add_price(grade, drive, price, transmission):
+
+        price = int(str(price).replace(",", ""))
+
+        if not 1000000 <= price <= 5000000:
+            raise RuntimeError("価格異常")
+
+        key = (grade, drive)
+
+        if (
+            key in transmissions
+            and transmissions[key] != transmission
+        ):
+            raise RuntimeError("変速機構成不一致")
+
+        groups.setdefault(key, set()).add(price)
+        transmissions[key] = transmission
+
+    # ---------------------------------
+    # ハスラー
+    # ---------------------------------
+
+    if method == "hustler":
 
         for item in soup.select(
             ".gradePrice__detail__price__item"
@@ -156,9 +238,7 @@ def fetch_prices(config):
                 continue
 
             drive = match.group(1)
-            price = int(
-                match.group(2).replace(",", "")
-            )
+            price = match.group(2)
 
             for parent in item.parents:
 
@@ -174,14 +254,23 @@ def fetch_prices(config):
                     break
 
                 if len(found) == 1:
+
                     grade = next(iter(found))
-                    groups.setdefault(
-                        (grade, drive), set()
-                    ).add(price)
+
+                    add_price(
+                        grade,
+                        drive,
+                        price,
+                        "CVT"
+                    )
+
                     break
 
-    # スペーシアシリーズの価格比較情報
-    else:
+    # ---------------------------------
+    # スペーシアシリーズ
+    # ---------------------------------
+
+    elif method == "detail":
 
         text = normalize(
             soup.get_text(" ", strip=True)
@@ -197,15 +286,107 @@ def fetch_prices(config):
 
         for match in price_pattern.finditer(text):
 
-            grade = match.group(1)
-            drive = match.group(2)
-            price = int(
-                match.group(3).replace(",", "")
+            add_price(
+                match.group(1),
+                match.group(2),
+                match.group(3),
+                "CVT"
             )
 
-            groups.setdefault(
-                (grade, drive), set()
-            ).add(price)
+    # ---------------------------------
+    # ワゴンR
+    # ---------------------------------
+
+    elif method == "wagonr":
+
+        text = normalize(
+            soup.get_text(" ", strip=True)
+        )
+
+        price_pattern = re.compile(
+            r"(?<![A-Z0-9])"
+            r"(HYBRID ZX|ZL)(?![A-Z0-9])"
+            r"[^。]{0,120}?"
+            r"メーカー希望小売価格\s*\(税込\)"
+            r"\s*2WD\s*[・/]?\s*"
+            r"(CVT(?:\s*/\s*5MT)?)"
+            r"\s*車\s*"
+            r"([\d,]+)\s*円\s*[~〜]?"
+            r"\s*4WD\s*[・/]?\s*"
+            r"(CVT(?:\s*/\s*5MT)?)"
+            r"\s*車\s*"
+            r"([\d,]+)\s*円"
+        )
+
+        for match in price_pattern.finditer(text):
+
+            grade = match.group(1)
+
+            trans2 = re.sub(
+                r"\s+", "", match.group(2)
+            )
+
+            trans4 = re.sub(
+                r"\s+", "", match.group(4)
+            )
+
+            add_price(
+                grade,
+                "2WD",
+                match.group(3),
+                trans2
+            )
+
+            add_price(
+                grade,
+                "4WD",
+                match.group(5),
+                trans4
+            )
+
+    # ---------------------------------
+    # ワゴンR スマイル
+    # ---------------------------------
+
+    elif method == "smile":
+
+        text = normalize(
+            soup.get_text(" ", strip=True)
+        )
+
+        price_pattern = re.compile(
+            r"(?<![A-Z0-9])"
+            r"(HYBRID X|HYBRID S|G)"
+            r"\s+(2WD|4WD)"
+            r"\s*[・/]?\s*CVT"
+            r"\s*車\s*"
+            r"(\d{1,3}(?:,\d{3}){2}"
+            r"(?:\s+\d{1,3}(?:,\d{3}){2})*)"
+            r"\s*円"
+        )
+
+        for match in price_pattern.finditer(text):
+
+            grade = match.group(1)
+            drive = match.group(2)
+
+            prices = re.findall(
+                r"\d{1,3}(?:,\d{3}){2}",
+                match.group(3)
+            )
+
+            for price in prices:
+
+                add_price(
+                    grade,
+                    drive,
+                    price,
+                    "CVT"
+                )
+
+    # =================================
+    # データ不足チェック
+    # =================================
 
     expected = {
         (grade, drive)
@@ -214,9 +395,21 @@ def fetch_prices(config):
     }
 
     if set(groups) != expected:
+
         print("取得済:", sorted(groups))
-        print("不足:", sorted(expected - set(groups)))
-        raise RuntimeError("グレード構成不一致")
+
+        print(
+            "不足:",
+            sorted(expected - set(groups))
+        )
+
+        raise RuntimeError(
+            "グレード構成不一致"
+        )
+
+    # =================================
+    # データベース形式に変換
+    # =================================
 
     cars = []
 
@@ -226,15 +419,14 @@ def fetch_prices(config):
 
         price = min(prices)
 
-        if not 1000000 <= price <= 5000000:
-            raise RuntimeError("価格異常")
-
         cars.append({
             "maker": "スズキ",
             "model": grade_models[grade],
             "grade": grade,
             "drive": drive,
-            "transmission": "CVT",
+            "transmission": transmissions[
+                (grade, drive)
+            ],
             "price": price,
             "price_type": "minimum_listed",
             "price_candidates": sorted(prices),
@@ -247,6 +439,10 @@ def fetch_prices(config):
     return cars
 
 
+# =====================================
+# データベース更新
+# =====================================
+
 success = 0
 failed = 0
 total = 0
@@ -256,9 +452,12 @@ print("=== PRICE DATABASE ===")
 for config in CONFIG:
 
     try:
+
         cars = fetch_prices(config)
 
         models = set(config["models"])
+
+        # 取得成功時のみ既存車種を置換
 
         data["cars"] = [
             car for car in data["cars"]
@@ -271,29 +470,63 @@ for config in CONFIG:
         data["cars"].extend(cars)
 
         for car in cars:
+
             print(
                 car["model"],
                 car["grade"],
                 car["drive"],
+                car["transmission"],
                 f'{car["price"]:,}円'
             )
 
         total += len(cars)
         success += 1
 
-        print("取得成功:", len(cars), "件")
+        print(
+            "取得成功:",
+            len(cars),
+            "件"
+        )
 
     except Exception as error:
 
         failed += 1
-        print("取得失敗:", config["path"])
+
+        print(
+            "取得失敗:",
+            config["path"]
+        )
+
         print("理由:", str(error))
+
         print("既存データを維持します")
 
     time.sleep(3)
 
+
 if success == 0:
     raise RuntimeError("全取得処理失敗")
+
+
+# =====================================
+# 重複データ除外
+# =====================================
+
+unique = {}
+
+for car in data["cars"]:
+
+    key = (
+        car.get("maker"),
+        car.get("model"),
+        car.get("grade"),
+        car.get("drive"),
+        car.get("transmission")
+    )
+
+    unique[key] = car
+
+data["cars"] = list(unique.values())
 
 data["updated_at"] = now
 
@@ -315,20 +548,13 @@ print("cars_preview.json 作成完了")
 print("=== UPDATE COMPLETE ===")
 
 
-# スズキ追加車種の価格構造調査
+# =====================================
+# 未対応車種の詳細ページ調査
+# =====================================
 
-print("=== NEW MODEL CHECK START ===")
+print("=== DETAIL CHECK START ===")
 
-NEW_MODELS = {
-    "アルト": "alto/",
-    "ラパン": "lapin/",
-    "ワゴンR": "wagonr/",
-    "ワゴンR スマイル": "wagonr_smile/",
-    "ジムニー": "jimny/",
-    "エブリイワゴン": "everywagon/"
-}
-
-for model, model_path in NEW_MODELS.items():
+for model, model_path in CHECK_MODELS.items():
 
     url = BASE + model_path
 
@@ -339,94 +565,69 @@ for model, model_path in NEW_MODELS.items():
 
     try:
 
-        if not robots.can_fetch(AGENT, url):
-            print("取得制限あり")
-            continue
-
-        response = session.get(
-            url,
-            timeout=20,
-            allow_redirects=False
-        )
-
-        if response.status_code != 200:
-            print("HTTP:", response.status_code)
-            continue
-
-        soup = BeautifulSoup(
-            response.content,
-            "html.parser"
-        )
+        soup = fetch_page(url)
 
         items = soup.select(
             ".gradePrice__detail__price__item"
         )
 
-        print("価格要素件数:", len(items))
+        print(
+            "価格要素件数:",
+            len(items)
+        )
 
-        seen = set()
+        text = normalize(
+            soup.get_text(" ", strip=True)
+        )
 
-        for item in items:
+        matches = list(re.finditer(
+            r"\d{1,3}(?:,\d{3}){2}\s*円",
+            text
+        ))
 
-            content = normalize(
-                item.get_text(" ", strip=True)
+        print(
+            "価格候補件数:",
+            len(matches)
+        )
+
+        for match in matches[:16]:
+
+            start = max(
+                0,
+                match.start() - 100
             )
 
-            if content not in seen:
-
-                seen.add(content)
-
-                print("価格:", content)
-
-                if len(seen) >= 8:
-                    break
-
-        if items:
-
-            parent = items[0]
-
-            for level in range(8):
-
-                if parent is None:
-                    break
-
-                print("LEVEL:", level)
-                print("CLASS:", parent.get("class", []))
-                print("TEXT:", normalize(
-                    parent.get_text(" ", strip=True)
-                )[:350])
-
-                parent = parent.parent
-
-        else:
-
-            text = normalize(
-                soup.get_text(" ", strip=True)
+            end = min(
+                len(text),
+                match.end() + 60
             )
 
-            matches = list(re.finditer(
-                r"\d{1,3}(?:,\d{3}){2}\s*円",
-                text
-            ))
+            print(
+                "価格周辺:",
+                text[start:end]
+            )
 
-            print("価格候補件数:", len(matches))
+        for item in items[:8]:
 
-            for match in matches[:8]:
-
-                start = max(0, match.start() - 80)
-                end = min(
-                    len(text),
-                    match.end() + 40
+            print(
+                "価格要素:",
+                normalize(
+                    item.get_text(
+                        " ",
+                        strip=True
+                    )
                 )
-
-                print("価格周辺:", text[start:end])
+            )
 
     except Exception as error:
 
-        print("調査失敗:", str(error))
+        print(
+            "調査失敗:",
+            str(error)
+        )
 
     finally:
 
         time.sleep(3)
 
-print("=== NEW MODEL CHECK END ===")
+print("=== DETAIL CHECK END ===")
