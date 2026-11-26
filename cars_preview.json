@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-26T11:40:45.434259+09:00",
+  "updated_at": "2026-11-26T11:44:05.210994+09:00",
   "currency": "JPY",
   "tax_included": true,
   "cars": [
@@ -20,7 +20,7 @@
       ],
       "tax_included": true,
       "source_url": "https://www.suzuki.co.jp/car/hustler/",
-      "updated_at": "2026-11-26T11:40:45.434259+09:00",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
       "status": "review_required"
     },
     {
@@ -39,7 +39,7 @@
       ],
       "tax_included": true,
       "source_url": "https://www.suzuki.co.jp/car/hustler/",
-      "updated_at": "2026-11-26T11:40:45.434259+09:00",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
       "status": "review_required"
     },
     {
@@ -58,7 +58,7 @@
       ],
       "tax_included": true,
       "source_url": "https://www.suzuki.co.jp/car/hustler/",
-      "updated_at": "2026-11-26T11:40:45.434259+09:00",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
       "status": "review_required"
     },
     {
@@ -77,7 +77,7 @@
       ],
       "tax_included": true,
       "source_url": "https://www.suzuki.co.jp/car/hustler/",
-      "updated_at": "2026-11-26T11:40:45.434259+09:00",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
       "status": "review_required"
     },
     {
@@ -96,7 +96,7 @@
       ],
       "tax_included": true,
       "source_url": "https://www.suzuki.co.jp/car/hustler/",
-      "updated_at": "2026-11-26T11:40:45.434259+09:00",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
       "status": "review_required"
     },
     {
@@ -115,7 +115,263 @@
       ],
       "tax_included": true,
       "source_url": "https://www.suzuki.co.jp/car/hustler/",
-      "updated_at": "2026-11-26T11:40:45.434259+09:00",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア",
+      "grade": "HYBRID G",
+      "drive": "2WD",
+      "transmission": "CVT",
+      "price": 1530100,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1530100
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア",
+      "grade": "HYBRID G",
+      "drive": "4WD",
+      "transmission": "CVT",
+      "price": 1656600,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1656600
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア カスタム",
+      "grade": "HYBRID GS",
+      "drive": "2WD",
+      "transmission": "CVT",
+      "price": 1801800,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1801800
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア カスタム",
+      "grade": "HYBRID GS",
+      "drive": "4WD",
+      "transmission": "CVT",
+      "price": 1925000,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1925000
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア",
+      "grade": "HYBRID X",
+      "drive": "2WD",
+      "transmission": "CVT",
+      "price": 1705000,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1705000
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア",
+      "grade": "HYBRID X",
+      "drive": "4WD",
+      "transmission": "CVT",
+      "price": 1824900,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1824900
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア",
+      "grade": "HYBRID X セーフティプラスパッケージ装着車",
+      "drive": "2WD",
+      "transmission": "CVT",
+      "price": 1771000,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1771000
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア",
+      "grade": "HYBRID X セーフティプラスパッケージ装着車",
+      "drive": "4WD",
+      "transmission": "CVT",
+      "price": 1890900,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1890900
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア カスタム",
+      "grade": "HYBRID XS",
+      "drive": "2WD",
+      "transmission": "CVT",
+      "price": 1995400,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1995400
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア カスタム",
+      "grade": "HYBRID XS",
+      "drive": "4WD",
+      "transmission": "CVT",
+      "price": 2115300,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        2115300
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア カスタム",
+      "grade": "HYBRID XS ターボ",
+      "drive": "2WD",
+      "transmission": "CVT",
+      "price": 2073500,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        2073500
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア カスタム",
+      "grade": "HYBRID XS ターボ",
+      "drive": "4WD",
+      "transmission": "CVT",
+      "price": 2193400,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        2193400
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア ギア",
+      "grade": "HYBRID XZ",
+      "drive": "2WD",
+      "transmission": "CVT",
+      "price": 1952500,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1952500
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia_gear/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア ギア",
+      "grade": "HYBRID XZ",
+      "drive": "4WD",
+      "transmission": "CVT",
+      "price": 2072400,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        2072400
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia_gear/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア ギア",
+      "grade": "HYBRID XZ ターボ",
+      "drive": "2WD",
+      "transmission": "CVT",
+      "price": 2037200,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        2037200
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia_gear/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "スペーシア ギア",
+      "grade": "HYBRID XZ ターボ",
+      "drive": "4WD",
+      "transmission": "CVT",
+      "price": 2157100,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        2157100
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/spacia_gear/detail/",
+      "updated_at": "2026-11-26T11:44:05.210994+09:00",
       "status": "review_required"
     }
   ],
