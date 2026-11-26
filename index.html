@@ -1,0 +1,196 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新車価格ナビ</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: sans-serif;
+  background: #f0f4f8;
+  margin: 0;
+  color: #203040;
+}
+header {
+  background: #075985;
+  color: white;
+  padding: 24px;
+  text-align: center;
+}
+h1 { margin: 0; font-size: 26px; }
+main {
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 16px;
+}
+.panel {
+  background: white;
+  padding: 22px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px #00000010;
+}
+label {
+  display: block;
+  font-weight: bold;
+  margin: 16px 0 8px;
+}
+select {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+}
+.result {
+  margin-top: 25px;
+  padding: 24px 10px;
+  background: #e0f2fe;
+  border-radius: 12px;
+  text-align: center;
+}
+#price {
+  font-size: 32px;
+  font-weight: bold;
+  color: #075985;
+  margin: 12px 0;
+}
+a { color: #075985; }
+.note {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.8;
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>新車価格ナビ</h1>
+  <p>CAR PRICE NAVI</p>
+</header>
+<main>
+<div class="panel">
+  <label>メーカー</label>
+  <select id="maker"></select>
+
+  <label>車種</label>
+  <select id="car"></select>
+
+  <label>グレード</label>
+  <select id="grade"></select>
+
+  <div class="result">
+    車両本体価格（税込・仮価格）
+    <div id="price"></div>
+    <div id="detail"></div>
+  </div>
+
+  <p>
+    <a id="official" target="_blank"
+       rel="noopener noreferrer">
+      メーカー公式HPを確認する
+    </a>
+  </p>
+  <p class="note">
+    ※現在は動作確認用の試作版です。
+    表示価格は仮データであり、
+    実際の販売価格ではありません。
+  </p>
+</div>
+</main>
+
+<script>
+const data = {
+  "トヨタ": {
+    "ヤリス": {
+      "X": 1600000,
+      "G": 1850000,
+      "Z": 2100000
+    },
+    "アクア": {
+      "X": 2200000,
+      "G": 2400000,
+      "Z": 2650000
+    }
+  },
+  "ホンダ": {
+    "N-BOX": {
+      "ベースグレード": 1700000,
+      "CUSTOM": 1900000,
+      "CUSTOM ターボ": 2100000
+    }
+  },
+  "スズキ": {
+    "ハスラー": {
+      "HYBRID G": 1500000,
+      "HYBRID X": 1700000
+    },
+    "スペーシア": {
+      "HYBRID G": 1550000,
+      "HYBRID X": 1750000
+    }
+  },
+  "ダイハツ": {
+    "タント": {
+      "L": 1450000,
+      "X": 1600000,
+      "カスタムRS": 2000000
+    }
+  }
+};
+
+const urls = {
+  "トヨタ": "https://toyota.jp/",
+  "ホンダ": "https://www.honda.co.jp/auto/",
+  "スズキ": "https://www.suzuki.co.jp/car/",
+  "ダイハツ": "https://www.daihatsu.co.jp/"
+};
+
+const maker = document.getElementById("maker");
+const car = document.getElementById("car");
+const grade = document.getElementById("grade");
+
+function fill(select, items) {
+  select.replaceChildren();
+  items.forEach(item => {
+    select.add(new Option(item, item));
+  });
+}
+
+function updateCars() {
+  fill(car, Object.keys(data[maker.value]));
+  updateGrades();
+}
+
+function updateGrades() {
+  fill(grade, Object.keys(
+    data[maker.value][car.value]
+  ));
+  updatePrice();
+}
+
+function updatePrice() {
+  const price =
+    data[maker.value][car.value][grade.value];
+
+  document.getElementById("price").textContent =
+    price.toLocaleString("ja-JP") + " 円";
+
+  document.getElementById("detail").textContent =
+    maker.value + " " + car.value + " " + grade.value;
+
+  document.getElementById("official").href =
+    urls[maker.value];
+}
+
+maker.onchange = updateCars;
+car.onchange = updateGrades;
+grade.onchange = updatePrice;
+
+fill(maker, Object.keys(data));
+updateCars();
+</script>
+</body>
+</html>
