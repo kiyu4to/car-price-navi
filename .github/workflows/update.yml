@@ -1,3 +1,4 @@
+
 name: Car Price Auto Update
 
 on:
@@ -19,7 +20,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -31,7 +32,16 @@ jobs:
           python-version: '3.12'
 
       - name: Install libraries
-        run: pip install requests beautifulsoup4
+        run: |
+          pip install requests beautifulsoup4 playwright
+
+      - name: Install Chromium
+        run: |
+          python -m playwright install --with-deps chromium
+
+      - name: Verify Playwright
+        run: |
+          python -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch(headless=True); print('Playwright Chromium OK'); b.close(); p.stop()"
 
       - name: Get car prices
         run: python update_cars.py
