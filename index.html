@@ -3,39 +3,59 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+ content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable"
+ content="yes">
+<meta name="theme-color" content="#075985">
 <title>新車価格ナビ</title>
+
 <style>
 * { box-sizing: border-box; }
+
 body {
   font-family: sans-serif;
   background: #f0f4f8;
   margin: 0;
   color: #203040;
 }
+
 header {
   background: #075985;
   color: white;
   padding: 24px;
   text-align: center;
 }
-h1 { margin: 0; font-size: 26px; }
+
+h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+header p {
+  margin-bottom: 0;
+  letter-spacing: 2px;
+}
+
 main {
   max-width: 600px;
-  margin: 20px auto;
+  margin: 12px auto;
   padding: 16px;
 }
+
 .panel {
   background: white;
   padding: 22px;
   border-radius: 16px;
   box-shadow: 0 4px 15px #00000010;
 }
+
 label {
   display: block;
   font-weight: bold;
   margin: 16px 0 8px;
 }
+
 select {
   width: 100%;
   padding: 14px;
@@ -43,7 +63,9 @@ select {
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   background: white;
+  color: #203040;
 }
+
 .result {
   margin-top: 25px;
   padding: 24px 10px;
@@ -51,13 +73,65 @@ select {
   border-radius: 12px;
   text-align: center;
 }
+
 #price {
   font-size: 32px;
   font-weight: bold;
   color: #075985;
   margin: 12px 0;
 }
-a { color: #075985; }
+
+#detail {
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+#status {
+  font-size: 12px;
+  margin-top: 12px;
+  color: #92400e;
+  font-weight: bold;
+}
+
+#updated {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 15px;
+}
+
+#connection {
+  font-size: 12px;
+  padding: 10px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  text-align: center;
+}
+
+a {
+  color: #075985;
+}
+
+.official {
+  display: block;
+  padding: 14px;
+  border: 1px solid #075985;
+  border-radius: 8px;
+  text-align: center;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background: #075985;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  margin-top: 12px;
+}
+
 .note {
   font-size: 12px;
   color: #64748b;
@@ -65,44 +139,79 @@ a { color: #075985; }
 }
 </style>
 </head>
+
 <body>
+
 <header>
   <h1>新車価格ナビ</h1>
   <p>CAR PRICE NAVI</p>
 </header>
+
 <main>
 <div class="panel">
-  <label>メーカー</label>
-  <select id="maker"></select>
 
-  <label>車種</label>
-  <select id="car"></select>
-
-  <label>グレード</label>
-  <select id="grade"></select>
-
-  <div class="result">
-    車両本体価格（税込・仮価格）
-    <div id="price"></div>
-    <div id="detail"></div>
+  <div id="connection">
+    データベース接続中...
   </div>
 
+  <label for="maker">メーカー</label>
+  <select id="maker"></select>
+
+  <label for="car">車種</label>
+  <select id="car"></select>
+
+  <label for="grade">グレード</label>
+  <select id="grade"></select>
+
+  <label for="drive">駆動方式</label>
+  <select id="drive"></select>
+
+  <div class="result">
+    <div id="priceLabel">
+      車両本体価格（税込）
+    </div>
+    <div id="price">---</div>
+    <div id="detail"></div>
+    <div id="status"></div>
+  </div>
+
+  <p id="updated"></p>
+
   <p>
-    <a id="official" target="_blank"
+    <a id="official"
+       class="official"
+       target="_blank"
        rel="noopener noreferrer">
       メーカー公式HPを確認する
     </a>
   </p>
+
+  <button id="reload">
+    最新データを読み込む
+  </button>
+
   <p class="note">
-    ※現在は動作確認用の試作版です。
-    表示価格は仮データであり、
-    実際の販売価格ではありません。
+    ※公式HP取得価格は確認用の最低掲載価格です。
+    標準車両本体価格と一致しない場合があります。
+    仮データは実際の販売価格ではありません。
+    オプション・諸費用等は含まれません。
+    正式な価格はメーカー公式HPでご確認ください。
   </p>
+
 </div>
 </main>
 
 <script>
-const data = {
+
+const urls = {
+  "トヨタ": "https://toyota.jp/",
+  "ホンダ": "https://www.honda.co.jp/auto/",
+  "スズキ": "https://www.suzuki.co.jp/car/",
+  "ダイハツ": "https://www.daihatsu.co.jp/"
+};
+
+// 既存の仮価格データ
+const sample = {
   "トヨタ": {
     "ヤリス": {
       "X": 1600000,
@@ -141,56 +250,239 @@ const data = {
   }
 };
 
-const urls = {
-  "トヨタ": "https://toyota.jp/",
-  "ホンダ": "https://www.honda.co.jp/auto/",
-  "スズキ": "https://www.suzuki.co.jp/car/",
-  "ダイハツ": "https://www.daihatsu.co.jp/"
-};
-
 const maker = document.getElementById("maker");
 const car = document.getElementById("car");
 const grade = document.getElementById("grade");
+const drive = document.getElementById("drive");
 
+let cars = [];
+
+// 仮データの変換
+function sampleCars() {
+  const result = [];
+
+  for (const [m, models] of Object.entries(sample)) {
+    for (const [c, grades] of Object.entries(models)) {
+      for (const [g, p] of Object.entries(grades)) {
+        result.push({
+          maker: m,
+          model: c,
+          grade: g,
+          drive: "未設定",
+          price: p,
+          source_url: urls[m],
+          status: "sample"
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
+// 選択肢の作成
 function fill(select, items) {
   select.replaceChildren();
-  items.forEach(item => {
+
+  [...new Set(items)].forEach(item => {
     select.add(new Option(item, item));
   });
 }
 
+// 車種選択
 function updateCars() {
-  fill(car, Object.keys(data[maker.value]));
+  const list = cars.filter(
+    c => c.maker === maker.value
+  );
+
+  fill(car, list.map(c => c.model));
   updateGrades();
 }
 
+// グレード選択
 function updateGrades() {
-  fill(grade, Object.keys(
-    data[maker.value][car.value]
-  ));
+  const list = cars.filter(
+    c => c.maker === maker.value
+      && c.model === car.value
+  );
+
+  fill(grade, list.map(c => c.grade));
+  updateDrives();
+}
+
+// 駆動方式選択
+function updateDrives() {
+  const list = cars.filter(
+    c => c.maker === maker.value
+      && c.model === car.value
+      && c.grade === grade.value
+  );
+
+  fill(drive, list.map(c => c.drive));
   updatePrice();
 }
 
+// 価格表示
 function updatePrice() {
-  const price =
-    data[maker.value][car.value][grade.value];
+  const selected = cars.find(
+    c => c.maker === maker.value
+      && c.model === car.value
+      && c.grade === grade.value
+      && c.drive === drive.value
+  );
 
-  document.getElementById("price").textContent =
-    price.toLocaleString("ja-JP") + " 円";
+  const price = document.getElementById("price");
+  const detail = document.getElementById("detail");
+  const status = document.getElementById("status");
+  const updated = document.getElementById("updated");
+  const official = document.getElementById("official");
+  const label = document.getElementById("priceLabel");
 
-  document.getElementById("detail").textContent =
-    maker.value + " " + car.value + " " + grade.value;
+  if (!selected) {
+    price.textContent = "価格未登録";
+    detail.textContent = "";
+    status.textContent = "";
+    updated.textContent = "";
+    official.removeAttribute("href");
+    return;
+  }
 
-  document.getElementById("official").href =
-    urls[maker.value];
+  price.textContent =
+    selected.price.toLocaleString("ja-JP") + " 円";
+
+  detail.textContent = [
+    selected.maker,
+    selected.model,
+    selected.grade,
+    selected.drive,
+    selected.transmission || ""
+  ].join(" ");
+
+  if (selected.status === "sample") {
+    label.textContent = "車両本体価格（仮価格）";
+    status.textContent = "仮データ・参考表示";
+  } else {
+    label.textContent = "最低掲載価格候補（税込）";
+    status.textContent =
+      "メーカー公式HP取得・価格確認待ち";
+  }
+
+  if (selected.updated_at) {
+    const date = new Date(selected.updated_at);
+
+    updated.textContent =
+      "情報取得日時：" +
+      date.toLocaleString("ja-JP", {
+        timeZone: "Asia/Tokyo"
+      });
+  } else {
+    updated.textContent = "情報取得日時：未登録";
+  }
+
+  official.href =
+    selected.source_url || urls[selected.maker];
+}
+
+// データベースの読み込み
+async function loadData() {
+  const connection =
+    document.getElementById("connection");
+
+  connection.textContent =
+    "データベース接続中...";
+
+  cars = sampleCars();
+
+  try {
+    const response = await fetch(
+      "./cars_preview.json",
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    const data = await response.json();
+
+    if (!Array.isArray(data.cars)) {
+      throw new Error("データ形式が不正です");
+    }
+
+    const officialCars = data.cars.filter(
+      c => c.maker === "スズキ"
+        && c.model === "ハスラー"
+        && c.status === "review_required"
+        && c.price_type === "minimum_listed"
+        && typeof c.grade === "string"
+        && ["2WD", "4WD"].includes(c.drive)
+        && Number.isFinite(c.price)
+        && c.price > 0
+    );
+
+    const keys = new Set(
+      officialCars.map(c => c.grade + "|" + c.drive)
+    );
+
+    const expected = [
+      "HYBRID G",
+      "HYBRID X",
+      "HYBRID X ターボ"
+    ].flatMap(g => [
+      g + "|2WD",
+      g + "|4WD"
+    ]);
+
+    if (
+      officialCars.length !== 6 ||
+      keys.size !== 6 ||
+      !expected.every(k => keys.has(k))
+    ) {
+      throw new Error("車両データが不足しています");
+    }
+
+    // ハスラーの仮データを置き換える
+    cars = cars.filter(
+      c => !(c.maker === "スズキ"
+        && c.model === "ハスラー")
+    );
+
+    cars.push(...officialCars);
+
+    connection.textContent =
+      "データベース接続成功：" +
+      officialCars.length + "件";
+
+    connection.style.color = "#15803d";
+
+  } catch (error) {
+    connection.textContent =
+      "データ取得失敗：仮データを表示中";
+
+    connection.style.color = "#b91c1c";
+    console.error(error);
+  }
+
+  fill(maker, cars.map(c => c.maker));
+
+  // 起動時はスズキ・ハスラーを表示
+  maker.value = "スズキ";
+  updateCars();
+
+  car.value = "ハスラー";
+  updateGrades();
 }
 
 maker.onchange = updateCars;
 car.onchange = updateGrades;
-grade.onchange = updatePrice;
+grade.onchange = updateDrives;
+drive.onchange = updatePrice;
 
-fill(maker, Object.keys(data));
-updateCars();
+document.getElementById("reload").onclick =
+  loadData;
+
+loadData();
+
 </script>
 </body>
 </html>
