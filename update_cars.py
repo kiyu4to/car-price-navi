@@ -808,3 +808,269 @@ except Exception as error:
     print("既存データを維持します")
 
 print("=== JIMNY UPDATE END ===")
+
+
+
+# =====================================
+# JavaScript・価格データ構造調査
+# =====================================
+
+from urllib.parse import urljoin, urlparse
+
+print("=== ADVANCED PRICE CHECK START ===")
+
+ADVANCED_MODELS = {
+    "アルト": "alto/detail/",
+    "ラパン": "lapin/detail/",
+    "エブリイワゴン": "everywagon/detail/"
+}
+
+money_pattern = re.compile(
+    r"(?<!\d)"
+    r"(?:\d{1,3}(?:,\d{3}){2}|[1-4]\d{6})"
+    r"(?!\d)"
+)
+
+keyword_pattern = re.compile(
+    r"price|grade|vehicle|carData|"
+    r"modelData|json|税込|希望小売価格",
+    re.I
+)
+
+checked_scripts = set()
+
+for model, model_path in ADVANCED_MODELS.items():
+
+    url = BASE + model_path
+
+    print("")
+    print("================================")
+    print("調査車種:", model)
+    print("URL:", url)
+    print("================================")
+
+    try:
+
+        soup = fetch_page(url)
+
+        # HTML内部の価格候補を調査
+
+        html = normalize(str(soup))
+
+        matches = list(
+            money_pattern.finditer(html)
+        )
+
+        print(
+            "HTML内価格候補件数:",
+            len(matches)
+        )
+
+        for match in matches[:12]:
+
+            start = max(
+                0, match.start() - 100
+            )
+
+            end = min(
+                len(html), match.end() + 100
+            )
+
+            print(
+                "HTML価格周辺:",
+                html[start:end]
+            )
+
+        # 価格関連のHTML要素を調査
+
+        elements = soup.find_all(
+            attrs={
+                "class": re.compile(
+                    r"price|grade", re.I
+                )
+            }
+        )
+
+        print(
+            "価格関連要素件数:",
+            len(elements)
+        )
+
+        for element in elements[:15]:
+
+            print(
+                "価格要素:",
+                str(element)[:700]
+            )
+
+        # JavaScriptファイルの調査
+
+        script_urls = []
+
+        for script in soup.find_all("script"):
+
+            src = script.get("src")
+
+            if not src:
+
+                content = script.get_text()
+
+                if keyword_pattern.search(content):
+
+                    print(
+                        "埋込Script:",
+                        normalize(content)[:500]
+                    )
+
+                continue
+
+            script_url = urljoin(url, src)
+
+            parsed = urlparse(script_url)
+
+            if (
+                parsed.scheme != "https"
+                or parsed.netloc
+                != "www.suzuki.co.jp"
+            ):
+                continue
+
+            if script_url not in script_urls:
+
+                script_urls.append(script_url)
+
+        print(
+            "公式JSファイル件数:",
+            len(script_urls)
+        )
+
+        for script_url in script_urls:
+
+            print("JS URL:", script_url)
+
+        # 車種固有・価格関連JSを優先
+
+        model_key = model_path.split("/")[0]
+
+        candidates = [
+            u for u in script_urls
+            if re.search(
+                model_key
+                + r"|price|grade|data|detail",
+                urlparse(u).path,
+                re.I
+            )
+        ]
+
+        candidates = candidates[:8]
+
+        print(
+            "JS調査対象件数:",
+            len(candidates)
+        )
+
+        for script_url in candidates:
+
+            if script_url in checked_scripts:
+                continue
+
+            try:
+
+                if not robots.can_fetch(
+                    AGENT, script_url
+                ):
+
+                    print("JS取得制限あり")
+                    continue
+
+                checked_scripts.add(script_url)
+
+                js_response = session.get(
+                    script_url,
+                    timeout=15,
+                    allow_redirects=False
+                )
+
+                if js_response.status_code != 200:
+
+                    print(
+                        "JS HTTP:",
+                        js_response.status_code
+                    )
+
+                    continue
+
+                js_text = normalize(
+                    js_response.text
+                )
+
+                print("")
+                print("JS調査:", script_url)
+
+                js_matches = list(
+                    money_pattern.finditer(
+                        js_text
+                    )
+                )
+
+                print(
+                    "JS内価格候補件数:",
+                    len(js_matches)
+                )
+
+                for match in js_matches[:8]:
+
+                    start = max(
+                        0, match.start() - 100
+                    )
+
+                    end = min(
+                        len(js_text),
+                        match.end() + 100
+                    )
+
+                    print(
+                        "JS価格周辺:",
+                        js_text[start:end]
+                    )
+
+                # JSON・CSV等の参照先調査
+
+                references = re.findall(
+                    r"""["']([^"']{1,250}\.(?:json|csv)(?:\?[^"']*)?)["']""",
+                    js_text,
+                    flags=re.I
+                )
+
+                for reference in list(
+                    dict.fromkeys(references)
+                )[:15]:
+
+                    print(
+                        "データ参照先:",
+                        reference
+                    )
+
+            except Exception as error:
+
+                print(
+                    "JS調査失敗:",
+                    str(error)
+                )
+
+            finally:
+
+                time.sleep(3)
+
+    except Exception as error:
+
+        print(
+            "詳細調査失敗:",
+            str(error)
+        )
+
+    finally:
+
+        time.sleep(3)
+
+print("=== ADVANCED PRICE CHECK END ===")
