@@ -86,3 +86,41 @@ print(json.dumps(
 
 print("価格候補取得件数:", len(candidates))
 print("取得テスト完了")
+
+
+# グレードと価格の対応関係を調査
+print("=== GRADE STRUCTURE START ===")
+
+seen = set()
+
+for node in soup.find_all(string=True):
+    value = unicodedata.normalize("NFKC", str(node))
+
+    if not re.search(
+        r"\d{1,3}(?:,\d{3}){2}", value
+    ):
+        continue
+
+    parent = node.parent
+    for level in range(5):
+        if parent is None:
+            break
+
+        content = parent.get_text(" ", strip=True)
+
+        if len(content) > 1200:
+            break
+
+        classes = " ".join(parent.get("class", []))
+        key = (classes, content)
+
+        if key not in seen:
+            seen.add(key)
+            print("LEVEL:", level)
+            print("TAG:", parent.name)
+            print("CLASS:", classes)
+            print("TEXT:", content)
+
+        parent = parent.parent
+
+print("=== GRADE STRUCTURE END ===")
