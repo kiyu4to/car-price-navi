@@ -1,0 +1,16 @@
+
+{
+  "version": 1,
+  "updated_at": null,
+  "currency": "JPY",
+  "tax_included": true,
+  "cars": [],
+  "sources": [
+    {
+      "maker": "スズキ",
+      "model": "ハスラー",
+      "url": "https://www.suzuki.co.jp/car/hustler/",
+      "status": "pending"
+    }
+  ]
+}
