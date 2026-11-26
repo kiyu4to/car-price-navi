@@ -3,23 +3,20 @@ import json
 import re
 import unicodedata
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from urllib.robotparser import RobotFileParser
 
 import requests
 from bs4 import BeautifulSoup
 
 URL = "https://www.suzuki.co.jp/car/hustler/"
-ROBOTS = "https://www.suzuki.co.jp/robots.txt"
 AGENT = "CarPriceNavi"
+HEADERS = {"User-Agent": AGENT}
 
-headers = {
-    "User-Agent": AGENT
-}
-
-# 自動取得の許可を確認
+# 自動取得制限の確認
 response = requests.get(
-    ROBOTS,
-    headers=headers,
+    "https://www.suzuki.co.jp/robots.txt",
+    headers=HEADERS,
     timeout=30
 )
 response.raise_for_status()
@@ -30,135 +27,40 @@ robots.parse(response.text.splitlines())
 if not robots.can_fetch(AGENT, URL):
     raise RuntimeError("自動取得が許可されていません")
 
-# メーカー公式HPを取得
+# 公式HPの取得
 response = requests.get(
     URL,
-    headers=headers,
+    headers=HEADERS,
     timeout=30
 )
-
 response.raise_for_status()
 
-soup = BeautifulSoup(response.content, "html.parser")
-
-for tag in soup(["script", "style", "noscript"]):
-    tag.decompose()
-
-text = soup.get_text(separator=" ", strip=True)
-text = unicodedata.normalize("NFKC", text)
-text = re.sub(r"\s+", " ", text)
-
-# 金額の候補を抽出
-pattern = r"([0-9]{1,3}(?:,[0-9]{3})+)\s*円"
-candidates = []
-
-for match in re.finditer(pattern, text):
-    price = int(match.group(1).replace(",", ""))
-
-    if 1000000 <= price <= 5000000:
-        start = max(0, match.start() - 180)
-        end = min(len(text), match.end() + 100)
-
-        candidates.append({
-            "price": price,
-            "context": text[start:end]
-        })
-
-if not candidates:
-    raise RuntimeError("価格情報を取得できませんでした")
-
-jst = timezone(timedelta(hours=9))
-
-result = {
-    "maker": "スズキ",
-    "model": "ハスラー",
-    "source_url": URL,
-    "checked_at": datetime.now(jst).isoformat(),
-    "status": "review_required",
-    "candidates": candidates
-}
-
-print(json.dumps(
-    result,
-    ensure_ascii=False,
-    indent=2
-))
-
-print("価格候補取得件数:", len(candidates))
-print("取得テスト完了")
-
-
-# グレードと価格の対応関係を調査
-print("=== GRADE STRUCTURE START ===")
-
-seen = set()
-
-for node in soup.find_all(string=True):
-    value = unicodedata.normalize("NFKC", str(node))
-
-    if not re.search(
-        r"\d{1,3}(?:,\d{3}){2}", value
-    ):
-        continue
-
-    parent = node.parent
-    for level in range(5):
-        if parent is None:
-            break
-
-        content = parent.get_text(" ", strip=True)
-
-        if len(content) > 1200:
-            break
-
-        classes = " ".join(parent.get("class", []))
-        key = (classes, content)
-
-        if key not in seen:
-            seen.add(key)
-            print("LEVEL:", level)
-            print("TAG:", parent.name)
-            print("CLASS:", classes)
-            print("TEXT:", content)
-
-        parent = parent.parent
-
-print("=== GRADE STRUCTURE END ===")
-
-
-print("=== GRADE CHECK START ===")
-
-items = soup.select(
-    ".gradePrice__detail__price__item"
+soup = BeautifulSoup(
+    response.content,
+    "html.parser"
 )
 
-if items:
-    parent = items[0]
-
-    for level in range(12):
-        if parent is None:
-            break
-
-        print("LEVEL:", level)
-        print("CLASS:", parent.get("class", []))
-        print("ID:", parent.get("id", ""))
-        print("TEXT:", parent.get_text(
-            " ", strip=True
-        )[:500])
-
-        parent = parent.parent
-
-print("=== GRADE CHECK END ===")
-
-
-print("=== GRADE PRICE SUMMARY ===")
-
+# グレード別・駆動方式別の価格取得
 groups = {}
 
 for item in soup.select(
     ".gradePrice__detail__price__item"
 ):
-    price_text = item.get_text(" ", strip=True)
+    text = unicodedata.normalize(
+        "NFKC",
+        item.get_text(" ", strip=True)
+    )
+
+    match = re.search(
+        r"(2WD|4WD)\s+CVT\s+([\d,]+)\s*円",
+        text
+    )
+
+    if not match:
+        continue
+
+    drive = match.group(1)
+    price = int(match.group(2).replace(",", ""))
 
     for parent in item.parents:
         content = unicodedata.normalize(
@@ -176,14 +78,98 @@ for item in soup.select(
 
         if len(grades) == 1:
             grade = next(iter(grades))
-            groups.setdefault(grade, set())
-            groups[grade].add(price_text)
+            grade = re.sub(r"\s+", " ", grade)
+            grade = grade.replace(
+                "Xターボ", "X ターボ"
+            )
+
+            key = (grade, drive)
+            groups.setdefault(key, set())
+            groups[key].add(price)
             break
 
-for grade, prices in groups.items():
-    print(grade)
-    for price in sorted(prices):
-        print("  " + price)
+# 必要な6種類が取得できたか確認
+expected = {
+    (grade, drive)
+    for grade in [
+        "HYBRID G",
+        "HYBRID X",
+        "HYBRID X ターボ"
+    ]
+    for drive in ["2WD", "4WD"]
+}
 
-print("グレード識別件数:", len(groups))
-print("=== SUMMARY END ===")
+if set(groups) != expected:
+    raise RuntimeError(
+        "グレード構成が一致しません"
+    )
+
+# 車両データの作成
+jst = timezone(timedelta(hours=9))
+now = datetime.now(jst).isoformat()
+cars = []
+
+for (grade, drive), prices in sorted(
+    groups.items()
+):
+    price = min(prices)
+
+    if not 1000000 <= price <= 5000000:
+        raise RuntimeError("価格異常")
+
+    cars.append({
+        "maker": "スズキ",
+        "model": "ハスラー",
+        "grade": grade,
+        "drive": drive,
+        "transmission": "CVT",
+        "price": price,
+        "price_type": "minimum_listed",
+        "price_candidates": sorted(prices),
+        "tax_included": True,
+        "source_url": URL,
+        "updated_at": now,
+        "status": "review_required"
+    })
+
+# データベースの読み込み
+path = Path("cars.json")
+data = json.loads(
+    path.read_text(encoding="utf-8")
+)
+
+# 他の車種のデータは維持
+data["cars"] = [
+    car for car in data.get("cars", [])
+    if not (
+        car.get("maker") == "スズキ"
+        and car.get("model") == "ハスラー"
+    )
+]
+
+data["cars"].extend(cars)
+data["updated_at"] = now
+
+# 確認用ファイルへ保存
+Path("cars_preview.json").write_text(
+    json.dumps(
+        data,
+        ensure_ascii=False,
+        indent=2
+    ),
+    encoding="utf-8"
+)
+
+# 実行結果
+print("=== PRICE DATABASE ===")
+
+for car in cars:
+    print(
+        car["grade"],
+        car["drive"],
+        f'{car["price"]:,}円'
+    )
+
+print("登録候補件数:", len(cars))
+print("cars_preview.json 作成完了")
+print("=== UPDATE COMPLETE ===")
