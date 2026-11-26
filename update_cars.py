@@ -313,3 +313,120 @@ print("今回取得件数:", total)
 print("DB登録総件数:", len(data["cars"]))
 print("cars_preview.json 作成完了")
 print("=== UPDATE COMPLETE ===")
+
+
+# スズキ追加車種の価格構造調査
+
+print("=== NEW MODEL CHECK START ===")
+
+NEW_MODELS = {
+    "アルト": "alto/",
+    "ラパン": "lapin/",
+    "ワゴンR": "wagonr/",
+    "ワゴンR スマイル": "wagonr_smile/",
+    "ジムニー": "jimny/",
+    "エブリイワゴン": "everywagon/"
+}
+
+for model, model_path in NEW_MODELS.items():
+
+    url = BASE + model_path
+
+    print("")
+    print("==========")
+    print("車種:", model)
+    print("URL:", url)
+
+    try:
+
+        if not robots.can_fetch(AGENT, url):
+            print("取得制限あり")
+            continue
+
+        response = session.get(
+            url,
+            timeout=20,
+            allow_redirects=False
+        )
+
+        if response.status_code != 200:
+            print("HTTP:", response.status_code)
+            continue
+
+        soup = BeautifulSoup(
+            response.content,
+            "html.parser"
+        )
+
+        items = soup.select(
+            ".gradePrice__detail__price__item"
+        )
+
+        print("価格要素件数:", len(items))
+
+        seen = set()
+
+        for item in items:
+
+            content = normalize(
+                item.get_text(" ", strip=True)
+            )
+
+            if content not in seen:
+
+                seen.add(content)
+
+                print("価格:", content)
+
+                if len(seen) >= 8:
+                    break
+
+        if items:
+
+            parent = items[0]
+
+            for level in range(8):
+
+                if parent is None:
+                    break
+
+                print("LEVEL:", level)
+                print("CLASS:", parent.get("class", []))
+                print("TEXT:", normalize(
+                    parent.get_text(" ", strip=True)
+                )[:350])
+
+                parent = parent.parent
+
+        else:
+
+            text = normalize(
+                soup.get_text(" ", strip=True)
+            )
+
+            matches = list(re.finditer(
+                r"\d{1,3}(?:,\d{3}){2}\s*円",
+                text
+            ))
+
+            print("価格候補件数:", len(matches))
+
+            for match in matches[:8]:
+
+                start = max(0, match.start() - 80)
+                end = min(
+                    len(text),
+                    match.end() + 40
+                )
+
+                print("価格周辺:", text[start:end])
+
+    except Exception as error:
+
+        print("調査失敗:", str(error))
+
+    finally:
+
+        time.sleep(3)
+
+print("=== NEW MODEL CHECK END ===")
