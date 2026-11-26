@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "updated_at": "2026-11-26T11:30:07.825509+09:00",
+  "currency": "JPY",
+  "tax_included": true,
+  "cars": [
+    {
+      "maker": "スズキ",
+      "model": "ハスラー",
+      "grade": "HYBRID G",
+      "drive": "2WD",
+      "transmission": "CVT",
+      "price": 1599400,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1599400,
+        1626900,
+        1648900,
+        1676400
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/hustler/",
+      "updated_at": "2026-11-26T11:30:07.825509+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "ハスラー",
+      "grade": "HYBRID G",
+      "drive": "4WD",
+      "transmission": "CVT",
+      "price": 1733600,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1733600,
+        1761100,
+        1783100,
+        1810600
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/hustler/",
+      "updated_at": "2026-11-26T11:30:07.825509+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "ハスラー",
+      "grade": "HYBRID X",
+      "drive": "2WD",
+      "transmission": "CVT",
+      "price": 1758900,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1758900,
+        1786400,
+        1808400,
+        1835900
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/hustler/",
+      "updated_at": "2026-11-26T11:30:07.825509+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "ハスラー",
+      "grade": "HYBRID X",
+      "drive": "4WD",
+      "transmission": "CVT",
+      "price": 1893100,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1893100,
+        1920600,
+        1942600,
+        1970100
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/hustler/",
+      "updated_at": "2026-11-26T11:30:07.825509+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "ハスラー",
+      "grade": "HYBRID X ターボ",
+      "drive": "2WD",
+      "transmission": "CVT",
+      "price": 1837000,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1837000,
+        1864500,
+        1886500,
+        1914000
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/hustler/",
+      "updated_at": "2026-11-26T11:30:07.825509+09:00",
+      "status": "review_required"
+    },
+    {
+      "maker": "スズキ",
+      "model": "ハスラー",
+      "grade": "HYBRID X ターボ",
+      "drive": "4WD",
+      "transmission": "CVT",
+      "price": 1971200,
+      "price_type": "minimum_listed",
+      "price_candidates": [
+        1971200,
+        1998700,
+        2020700,
+        2048200
+      ],
+      "tax_included": true,
+      "source_url": "https://www.suzuki.co.jp/car/hustler/",
+      "updated_at": "2026-11-26T11:30:07.825509+09:00",
+      "status": "review_required"
+    }
+  ],
+  "sources": [
+    {
+      "maker": "スズキ",
+      "model": "ハスラー",
+      "url": "https://www.suzuki.co.jp/car/hustler/",
+      "status": "pending"
+    }
+  ]
+}
